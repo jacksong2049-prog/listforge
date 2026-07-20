@@ -1,0 +1,11 @@
+# Cloudflare Pages / Workers configuration
+# Deploy: npx wrangler pages deploy out/ --project-name=listforge
+# Or connect GitHub repo to Cloudflare Pages for auto-deploy
+
+name = "listforge"
+compatibility_date = "2026-07-20"
+
+# [vars]
+# Environment variables for production
+# NEXT_PUBLIC_SITE_URL = "https://listforge.ai"
+# NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-XXX"
