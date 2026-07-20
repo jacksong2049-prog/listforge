@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { SubscribeButton } from "@/components/pricing/SubscribeButton";
 
 export const metadata = {
   title: "Pricing — Simple, Transparent Plans",
@@ -120,15 +121,21 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link href={plan.href}>
-                  <Button
+                {plan.name === "Free" ? (
+                  <Link href={plan.href}>
+                    <Button variant="outline" size="lg" className="w-full">
+                      {plan.cta}
+                    </Button>
+                  </Link>
+                ) : (
+                  <SubscribeButton
+                    plan={plan.name.toLowerCase() as "pro" | "business"}
+                    planName={plan.name}
                     variant={plan.highlighted ? "primary" : "outline"}
-                    size="lg"
-                    className="w-full"
                   >
                     {plan.cta}
-                  </Button>
-                </Link>
+                  </SubscribeButton>
+                )}
               </div>
             ))}
           </div>
