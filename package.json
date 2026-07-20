@@ -14,8 +14,8 @@
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "next-auth": "^5.0.0-beta",
-    "@auth/core": "^0.32.0",
+    "next-auth": "^5.0.0-beta.25",
+    "@auth/core": "^0.37.0",
     "lucide-react": "^0.400.0",
     "clsx": "^2.1.0"
   },

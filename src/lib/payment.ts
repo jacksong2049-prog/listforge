@@ -1,47 +1,24 @@
 /**
- * Payment integration (PayPal + Creem)
+ * Payment Integration — PayPal Subscriptions
  *
- * PayPal: PayPal REST API v2 for subscriptions
- * Creem: Alternative payment aggregator
- *
- * To enable:
- * 1. Set environment variables in .env
- * 2. Uncomment and implement the functions below
- * 3. Create payment webhook handlers
+ * Setup:
+ * 1. Go to https://developer.paypal.com → Create REST API App
+ * 2. Set PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, NEXT_PUBLIC_PAYPAL_CLIENT_ID in .env
+ * 3. Create subscription plans in PayPal dashboard
+ * 4. Set PAYPAL_PRO_PLAN_ID and PAYPAL_BUSINESS_PLAN_ID in .env
  */
 
-/**
- * PayPal — Create Subscription
- */
-/*
-export async function createPayPalSubscription(
-  planId: string,
-  userId: string
-) {
-  const response = await fetch("https://api-m.paypal.com/v1/billing/subscriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${await getPayPalAccessToken()}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      plan_id: planId,
-      subscriber: { payer_id: userId },
-      application_context: {
-        brand_name: "ListForge",
-        return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?subscription=success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?subscription=cancelled`,
-      },
-    }),
-  });
-  return response.json();
-}
+const PAYPAL_API =
+  process.env.NODE_ENV === "production"
+    ? "https://api-m.paypal.com"
+    : "https://api-m.sandbox.paypal.com";
 
-async function getPayPalAccessToken() {
+async function getAccessToken(): Promise<string> {
   const auth = Buffer.from(
     `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
   ).toString("base64");
-  const response = await fetch("https://api-m.paypal.com/v1/oauth2/token", {
+
+  const response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${auth}`,
@@ -49,60 +26,139 @@ async function getPayPalAccessToken() {
     },
     body: "grant_type=client_credentials",
   });
+
+  if (!response.ok) {
+    throw new Error(`PayPal auth failed: ${response.status}`);
+  }
+
   const data = await response.json();
   return data.access_token;
 }
-*/
+
+export interface CreateSubscriptionParams {
+  planId: string;
+  userId: string;
+  userEmail: string;
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+export interface SubscriptionResponse {
+  id: string;
+  status: string;
+  approvalUrl: string;
+}
 
 /**
- * Creem — Create Checkout Session
+ * Create a PayPal subscription
+ * Returns { id, approvalUrl } — redirect user to approvalUrl to complete payment.
  */
-/*
-export async function createCreemCheckout(
-  priceId: string,
-  userId: string,
-  userEmail: string
-) {
-  const response = await fetch("https://api.creem.io/v1/checkout/sessions", {
+export async function createPayPalSubscription(
+  params: CreateSubscriptionParams
+): Promise<SubscriptionResponse> {
+  const token = await getAccessToken();
+
+  const response = await fetch(`${PAYPAL_API}/v1/billing/subscriptions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.CREEM_SECRET_KEY}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      "PayPal-Request-Id": `listforge-${params.userId}-${Date.now()}`,
     },
     body: JSON.stringify({
-      price_id: priceId,
-      customer_email: userEmail,
-      customer_id: userId,
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?subscription=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing`,
+      plan_id: params.planId,
+      subscriber: {
+        name: { given_name: params.userEmail.split("@")[0] },
+        email_address: params.userEmail,
+      },
+      application_context: {
+        brand_name: "ListForge",
+        locale: "en-US",
+        shipping_preference: "NO_SHIPPING",
+        user_action: "SUBSCRIBE_NOW",
+        return_url: params.returnUrl,
+        cancel_url: params.cancelUrl,
+      },
     }),
   });
-  return response.json();
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`PayPal subscription creation failed: ${error}`);
+  }
+
+  const data = await response.json();
+
+  // Find approval URL
+  const approvalUrl = data.links?.find(
+    (link: any) => link.rel === "approve"
+  )?.href;
+
+  return {
+    id: data.id,
+    status: data.status,
+    approvalUrl: approvalUrl || "",
+  };
 }
-*/
 
 /**
- * Subscription plans (matching pricing page)
+ * Cancel a PayPal subscription
  */
-/*
+export async function cancelPayPalSubscription(
+  subscriptionId: string,
+  reason: string = "Customer requested cancellation"
+): Promise<void> {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${PAYPAL_API}/v1/billing/subscriptions/${subscriptionId}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ reason }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`PayPal cancellation failed: ${error}`);
+  }
+}
+
+/**
+ * Get subscription details
+ */
+export async function getPayPalSubscription(subscriptionId: string) {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${PAYPAL_API}/v1/billing/subscriptions/${subscriptionId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`PayPal subscription fetch failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export const SUBSCRIPTION_PLANS = {
   pro: {
     name: "Pro",
     price: 19,
-    currency: "USD",
-    interval: "month",
-    features: ["50 listings/mo", "12+ languages", "Competitor analysis"],
-    paypalPlanId: "P-XXX",
-    creemPriceId: "price_XXX",
+    listings: 50,
+    planId: process.env.PAYPAL_PRO_PLAN_ID || "",
   },
   business: {
     name: "Business",
     price: 39,
-    currency: "USD",
-    interval: "month",
-    features: ["Unlimited listings", "Bulk import", "API access", "Team accounts"],
-    paypalPlanId: "P-YYY",
-    creemPriceId: "price_YYY",
+    listings: "Unlimited",
+    planId: process.env.PAYPAL_BUSINESS_PLAN_ID || "",
   },
 } as const;
-*/

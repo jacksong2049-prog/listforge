@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
+import { UserMenu } from "@/components/layout/UserMenu";
 
 const NAV_LINKS = [
   { href: "/#features", label: "Features" },
@@ -44,16 +44,7 @@ export function Header() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="primary" size="sm">
-                Start Free
-              </Button>
-            </Link>
+            <UserMenu />
           </div>
 
           {/* Mobile Toggle */}
@@ -89,13 +80,8 @@ export function Header() {
             </nav>
             <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
               <Link href="/dashboard" className="flex-1">
-                <Button variant="outline" size="sm" className="w-full">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/dashboard" className="flex-1">
                 <Button variant="primary" size="sm" className="w-full">
-                  Start Free
+                  Launch App
                 </Button>
               </Link>
             </div>
