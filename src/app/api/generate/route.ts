@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       keywords: body.keywords || [],
       platform: body.platform as Platform,
       language: (body.language || "en") as Language,
-      tone: body.tone || "professional",
+      tone: (body.tone || "professional") as "professional" | "casual" | "luxury" | "technical",
     });
 
     return NextResponse.json({ success: true, data: result });
@@ -76,7 +76,7 @@ async function generateWithAI(input: {
   keywords: string[];
   platform: Platform;
   language: Language;
-  tone: string;
+  tone: "professional" | "casual" | "luxury" | "technical";
 }): Promise<ListingOutput> {
   // If no AI key configured, use demo mode
   if (!hasAIProvider()) {
