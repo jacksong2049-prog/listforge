@@ -155,7 +155,9 @@ function generateSearchTerms(
       expanded.push(`${mod} ${kw}`);
     }
   }
-  return [...new Set([...base, ...expanded])].slice(0, 15);
+  const all = base.concat(expanded);
+  const unique = all.filter((item, index) => all.indexOf(item) === index);
+  return unique.slice(0, 15);
 }
 
 /** Calculate listing quality score (0-100) */

@@ -1,25 +1,27 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const isDashboardRoute = req.nextUrl.pathname.startsWith("/dashboard");
+/**
+ * Simple middleware: redirect unauthenticated users away from /dashboard.
+ * Checks for the next-auth session token cookie (JWT strategy).
+ */
+export function middleware(request: NextRequest) {
+  const hasSessionToken = request.cookies.has("authjs.session-token") ||
+    request.cookies.has("__Secure-authjs.session-token") ||
+    request.cookies.has("next-auth.session-token") ||
+    request.cookies.has("__Secure-next-auth.session-token");
 
-  // Protected routes: redirect to login if not authenticated
-  if (isDashboardRoute && !isLoggedIn) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+  const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
+
+  if (isDashboardRoute && !hasSessionToken) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // If logged in and trying to access login page, redirect to dashboard
-  if (isLoggedIn && req.nextUrl.pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
-  }
-
   return NextResponse.next();
-});
+}
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*"],
 };
