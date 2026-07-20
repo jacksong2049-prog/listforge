@@ -8,10 +8,9 @@
  * 4. Set PAYPAL_PRO_PLAN_ID and PAYPAL_BUSINESS_PLAN_ID in .env
  */
 
-const PAYPAL_API =
-  process.env.NODE_ENV === "production"
-    ? "https://api-m.paypal.com"
-    : "https://api-m.sandbox.paypal.com";
+const PAYPAL_API = process.env.PAYPAL_SANDBOX === "true"
+  ? "https://api-m.sandbox.paypal.com"
+  : "https://api-m.paypal.com";
 
 async function getAccessToken(): Promise<string> {
   const auth = Buffer.from(
